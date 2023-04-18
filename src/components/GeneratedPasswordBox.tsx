@@ -1,8 +1,16 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Copy, ArrowsClockwise } from 'phosphor-react';
 import * as Progress from '@radix-ui/react-progress';
 
 import { usePassword } from '../hooks/password';
+
+const levels = [
+  { length: 0, progress: 0, color: 'bg-[#df6661]' },
+  { length: 5, progress: 25, color: 'bg-[#df6661]' },
+  { length: 9, progress: 50, color: 'bg-[#efc20f]' },
+  { length: 10, progress: 75, color: 'bg-[#00a878]' },
+  { length: Infinity, progress: 100, color: 'bg-[#006b4d]' },
+];
 
 export const GeneratedPasswordBox = () => {
   const { password, handleGeneratePassword } = usePassword();
@@ -11,46 +19,25 @@ export const GeneratedPasswordBox = () => {
 
   const copyPasswordToClipboard = () => {
     if (navigator) {
-      navigator.clipboard.writeText(password || '');
+      navigator.clipboard.writeText(password.password || '');
     }
   };
 
-  const handlePasswordStrength = () => {
-    if (password.length < 5) {
-      setProgress(0);
-      setProgressColor('bg-[#df6661]');
+  const handlePasswordStrength = useCallback(() => {
+    const passwordLength = password.password.length;
 
-      return;
-    }
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const { progress: tempProgress, color } = levels.find(
+      ({ length }) => passwordLength < length
+    )!;
 
-    if (password.length < 7) {
-      setProgress(25);
-      setProgressColor('bg-[#df6661]');
-
-      return;
-    }
-
-    if (password.length < 9) {
-      setProgress(50);
-      setProgressColor('bg-[#efc20f]');
-
-      return;
-    }
-
-    if (password.length < 11) {
-      setProgress(75);
-      setProgressColor('bg-[#00a878]');
-
-      return;
-    }
-
-    setProgress(100);
-    setProgressColor('bg-[#006b4d]');
-  };
+    setProgress(tempProgress);
+    setProgressColor(color);
+  }, [password.password.length]);
 
   useEffect(() => {
     handlePasswordStrength();
-  }, [password.length]);
+  }, [handlePasswordStrength]);
 
   return (
     <div className="relative mt-6 mb-4 p-6 flex flex-wrap justify-between items-center bg-blue-900 rounded-lg">
@@ -58,7 +45,7 @@ export const GeneratedPasswordBox = () => {
         className="flex-1 font-medium text-xl tracking-wider xsm:mr-1"
         style={{ lineBreak: 'anywhere' }}
       >
-        {password}
+        {password.password}
       </div>
 
       <div className="w-full flex items-center justify-evenly mt-2 xsm:w-auto xsm:mt-0 xsm:justify-start">
