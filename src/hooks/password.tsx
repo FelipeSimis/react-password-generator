@@ -2,21 +2,44 @@ import {
   createContext,
   Dispatch,
   ReactNode,
-  SetStateAction,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
-  useState,
+  useReducer,
 } from 'react';
 
+const initialState = {
+  password: '',
+  length: [8],
+  hasLowercase: true,
+  hasUppercase: true,
+  hasNumbers: true,
+  hasSymbols: true,
+};
+
+type State = typeof initialState;
+
+type Action =
+  | { type: 'SET_PASSWORD'; payload: string }
+  | { type: 'SET_LENGTH'; payload: number[] }
+  | { type: 'TOGGLE_HAS_LOWERCASE' }
+  | { type: 'TOGGLE_HAS_UPPERCASE' }
+  | { type: 'TOGGLE_HAS_NUMBERS' }
+  | { type: 'TOGGLE_HAS_SYMBOLS' }
+  | { type: 'ALL_CHARACTERS' }
+  | { type: 'ONLY_LETTERS' };
+
 type PasswordContextData = {
-  password: string;
-  length: number[];
-  hasLowercase: boolean;
-  hasUppercase: boolean;
-  hasNumbers: boolean;
-  hasSymbols: boolean;
-  setLength: Dispatch<SetStateAction<number[]>>;
+  password: {
+    password: string;
+    length: number[];
+    hasLowercase: boolean;
+    hasUppercase: boolean;
+    hasNumbers: boolean;
+    hasSymbols: boolean;
+  };
+  setPassword: Dispatch<Action>;
   handleGeneratePassword: () => void;
   handlePasswordLength: (value: number[]) => void;
   handleHasLowercase: () => void;
@@ -32,154 +55,117 @@ const PasswordContext = createContext<PasswordContextData>(
   {} as PasswordContextData
 );
 
-const numbers = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
-const lowercaseLetters = 'abcdefghijklmnopqrstuvwxyz';
-const uppercaseLetters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-const symbols = '!?@#$%^&*()';
+const reducer = (state: State, action: Action): State => {
+  switch (action.type) {
+    case 'SET_PASSWORD':
+      return { ...state, password: action.payload };
+    case 'SET_LENGTH':
+      return { ...state, length: action.payload };
+    case 'TOGGLE_HAS_LOWERCASE':
+      return { ...state, hasLowercase: !state.hasLowercase };
+    case 'TOGGLE_HAS_UPPERCASE':
+      return { ...state, hasUppercase: !state.hasUppercase };
+    case 'TOGGLE_HAS_NUMBERS':
+      return { ...state, hasNumbers: !state.hasNumbers };
+    case 'TOGGLE_HAS_SYMBOLS':
+      return { ...state, hasSymbols: !state.hasSymbols };
+    case 'ALL_CHARACTERS':
+      return {
+        ...state,
+        hasLowercase: true,
+        hasUppercase: true,
+        hasNumbers: true,
+        hasSymbols: true,
+      };
+    case 'ONLY_LETTERS':
+      return {
+        ...state,
+        hasLowercase: true,
+        hasUppercase: true,
+        hasNumbers: false,
+        hasSymbols: false,
+      };
+    default:
+      return state;
+  }
+};
 
-let characters = [
-  ...numbers,
-  ...lowercaseLetters,
-  ...uppercaseLetters,
-  ...symbols,
-].sort(() => Math.random() - 0.5);
+const characterSets = {
+  lowercase: 'abcdefghijklmnopqrstuvwxyz',
+  uppercase: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
+  numbers: '0123456789',
+  symbols: '!@#$%^&*()_+~`|}{[]:;?><,./-=',
+};
 
 const PasswordProvider = ({ children }: { children: ReactNode }) => {
-  const [password, setPassword] = useState('');
-  const [length, setLength] = useState([8]);
-  const [hasLowercase, setHasLowercase] = useState(true);
-  const [hasUppercase, setHasUppercase] = useState(true);
-  const [hasNumbers, setHasNumbers] = useState(true);
-  const [hasSymbols, setHasSymbols] = useState(true);
+  const [password, dispatch] = useReducer(reducer, initialState);
 
-  const handleGeneratePassword = () => {
-    let newPassword = '';
+  const handleGeneratePassword = useCallback(() => {
+    let selectedCharacterSets = '';
 
     if (
-      (!hasLowercase && !hasUppercase && !hasNumbers && !hasSymbols) ||
-      (hasLowercase && hasUppercase && hasNumbers && hasSymbols)
+      !password.hasLowercase &&
+      !password.hasUppercase &&
+      !password.hasNumbers &&
+      !password.hasSymbols
     ) {
-      characters = [
-        ...numbers,
-        ...lowercaseLetters,
-        ...uppercaseLetters,
-        ...symbols,
-      ].sort(() => Math.random() - 0.5);
+      selectedCharacterSets = Object.values(characterSets).join('');
+    }
 
-      for (let i = 0; i < length[0]; i++) {
-        newPassword +=
-          characters[Math.floor(Math.random() * characters.length)];
+    if (password.hasLowercase) selectedCharacterSets += characterSets.lowercase;
+    if (password.hasUppercase) selectedCharacterSets += characterSets.uppercase;
+    if (password.hasNumbers) selectedCharacterSets += characterSets.numbers;
+    if (password.hasSymbols) selectedCharacterSets += characterSets.symbols;
+
+    let newPassword = '';
+
+    for (let i = 0; i < password.length[0]; i++) {
+      newPassword += selectedCharacterSets.charAt(
+        Math.floor(Math.random() * selectedCharacterSets.length)
+      );
+    }
+
+    dispatch({ type: 'SET_PASSWORD', payload: newPassword });
+  }, [
+    password.hasLowercase,
+    password.hasNumbers,
+    password.hasSymbols,
+    password.hasUppercase,
+    password.length,
+  ]);
+
+  const handlePasswordLength = (value: number[]) =>
+    dispatch({ type: 'SET_LENGTH', payload: value });
+
+  const handleHasLowercase = () => dispatch({ type: 'TOGGLE_HAS_LOWERCASE' });
+
+  const handleHasUppercase = () => dispatch({ type: 'TOGGLE_HAS_UPPERCASE' });
+
+  const handleHasNumbers = () => dispatch({ type: 'TOGGLE_HAS_NUMBERS' });
+
+  const handleHasSymbols = () => dispatch({ type: 'TOGGLE_HAS_SYMBOLS' });
+
+  const handleShortcutPasswordConfig = useCallback(
+    (value: 'all-characters' | 'only-letters') => {
+      if (value === 'all-characters') {
+        dispatch({ type: 'ALL_CHARACTERS' });
+
+        return;
       }
 
-      setPassword(newPassword);
-
-      return;
-    }
-
-    if (!hasLowercase && !hasUppercase && hasNumbers && hasSymbols) {
-      characters = [...numbers, ...symbols];
-    }
-
-    if (!hasLowercase && !hasUppercase && !hasNumbers && hasSymbols) {
-      characters = [...symbols];
-    }
-
-    if (!hasLowercase && !hasUppercase && hasNumbers && !hasSymbols) {
-      characters = [...numbers];
-    }
-
-    if (!hasLowercase && hasUppercase && !hasNumbers && !hasSymbols) {
-      characters = [...uppercaseLetters];
-    }
-
-    if (hasLowercase && !hasUppercase && !hasNumbers && !hasSymbols) {
-      characters = [...lowercaseLetters];
-    }
-
-    if (!hasLowercase && hasUppercase && hasNumbers && hasSymbols) {
-      characters = [...numbers, ...uppercaseLetters, ...symbols];
-    }
-
-    if (!hasLowercase && hasUppercase && !hasNumbers && hasSymbols) {
-      characters = [...uppercaseLetters, ...symbols];
-    }
-
-    if (!hasLowercase && hasUppercase && hasNumbers && !hasSymbols) {
-      characters = [...numbers, ...uppercaseLetters];
-    }
-
-    if (hasLowercase && !hasUppercase && hasNumbers && hasSymbols) {
-      characters = [...numbers, ...lowercaseLetters, ...symbols];
-    }
-
-    if (hasLowercase && !hasUppercase && !hasNumbers && hasSymbols) {
-      characters = [...lowercaseLetters, ...symbols];
-    }
-
-    if (hasLowercase && !hasUppercase && hasNumbers && !hasSymbols) {
-      characters = [...numbers, ...lowercaseLetters];
-    }
-
-    if (hasLowercase && hasUppercase && !hasNumbers && hasSymbols) {
-      characters = [...lowercaseLetters, ...uppercaseLetters, ...symbols];
-    }
-
-    if (hasLowercase && hasUppercase && hasNumbers && !hasSymbols) {
-      characters = [...numbers, ...lowercaseLetters, ...uppercaseLetters];
-    }
-
-    if (hasLowercase && hasUppercase && !hasNumbers && !hasSymbols) {
-      characters = [...lowercaseLetters, ...uppercaseLetters];
-    }
-
-    for (let i = 0; i < length[0]; i++) {
-      newPassword += characters[Math.floor(Math.random() * characters.length)];
-    }
-
-    setPassword(newPassword);
-  };
-
-  const handlePasswordLength = (value: number[]) => setLength(value);
-
-  const handleHasLowercase = () => setHasLowercase(!hasLowercase);
-
-  const handleHasUppercase = () => setHasUppercase(!hasUppercase);
-
-  const handleHasNumbers = () => setHasNumbers(!hasNumbers);
-
-  const handleHasSymbols = () => setHasSymbols(!hasSymbols);
-
-  const handleShortcutPasswordConfig = (
-    value: 'all-characters' | 'only-letters'
-  ) => {
-    if (value === 'all-characters') {
-      setHasLowercase(true);
-      setHasUppercase(true);
-      setHasNumbers(true);
-      setHasSymbols(true);
-
-      return;
-    }
-
-    setHasLowercase(true);
-    setHasUppercase(true);
-    setHasNumbers(false);
-    setHasSymbols(false);
-  };
+      dispatch({ type: 'ONLY_LETTERS' });
+    },
+    []
+  );
 
   useEffect(() => {
     handleGeneratePassword();
-  }, [length, hasLowercase, hasUppercase, hasNumbers, hasSymbols]);
+  }, [handleGeneratePassword]);
 
   const values = useMemo(
     () => ({
       password,
-      length,
-      hasLowercase,
-      hasUppercase,
-      hasNumbers,
-      hasSymbols,
-      setLength,
+      setPassword: dispatch,
       handlePasswordLength,
       handleGeneratePassword,
       handleHasLowercase,
@@ -188,22 +174,7 @@ const PasswordProvider = ({ children }: { children: ReactNode }) => {
       handleHasSymbols,
       handleShortcutPasswordConfig,
     }),
-    [
-      password,
-      length,
-      hasLowercase,
-      hasUppercase,
-      hasNumbers,
-      hasSymbols,
-      setLength,
-      handlePasswordLength,
-      handleGeneratePassword,
-      hasLowercase,
-      hasUppercase,
-      hasNumbers,
-      hasSymbols,
-      handleShortcutPasswordConfig,
-    ]
+    [handleGeneratePassword, handleShortcutPasswordConfig, password]
   );
 
   return (
