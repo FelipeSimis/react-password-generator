@@ -1,18 +1,14 @@
 import * as Slider from '@radix-ui/react-slider';
-import * as Checkbox from '@radix-ui/react-checkbox';
 import * as RadioGroup from '@radix-ui/react-radio-group';
-import { Check } from 'phosphor-react';
 
 import { usePassword } from '../hooks/password';
 
+import { Checkbox } from './Checkbox';
+
 export const PasswordCustomization = () => {
   const {
-    length,
-    setLength,
-    hasLowercase,
-    hasUppercase,
-    hasNumbers,
-    hasSymbols,
+    password,
+    setPassword,
     handlePasswordLength,
     handleHasLowercase,
     handleHasUppercase,
@@ -33,11 +29,16 @@ export const PasswordCustomization = () => {
           <div className="flex items-center mt-2">
             <input
               type="number"
-              value={Number(length)}
+              value={Number(password.length)}
               min={4}
               max={40}
               className="w-12 pl-2 mr-4 bg-white text-bg-black rounded-md"
-              onChange={e => setLength([Number(e.target.value)])}
+              onChange={e =>
+                setPassword({
+                  type: 'SET_LENGTH',
+                  payload: [Number(e.target.value)],
+                })
+              }
             />
 
             <Slider.Root
@@ -45,7 +46,7 @@ export const PasswordCustomization = () => {
               step={1}
               min={4}
               max={40}
-              value={length}
+              value={password.length}
               orientation="horizontal"
               aria-label="Length"
               className="w-48 h-3 relative flex items-center select-none touch-none"
@@ -96,81 +97,33 @@ export const PasswordCustomization = () => {
         </RadioGroup.Root>
 
         <div className="flex flex-col gap-3">
-          <div className="flex items-center">
-            <Checkbox.Root
-              defaultChecked
-              id="lowercase"
-              className="w-6 h-6 bg-bg-black rounded-md cursor-pointer"
-              aria-label="Toggle lowercase"
-              checked={hasLowercase}
-              onCheckedChange={handleHasLowercase}
-            >
-              <Checkbox.Indicator>
-                <Check size={24} />
-              </Checkbox.Indicator>
-            </Checkbox.Root>
+          <Checkbox
+            id="lowercase"
+            label="Toggle lowercase"
+            checked={password.hasLowercase}
+            onCheckedChange={handleHasLowercase}
+          />
 
-            <label htmlFor="lowercase" className="pl-2 cursor-pointer">
-              Lowercase
-            </label>
-          </div>
+          <Checkbox
+            id="uppercase"
+            label="Toggle uppercase"
+            checked={password.hasUppercase}
+            onCheckedChange={handleHasUppercase}
+          />
 
-          <div className="flex items-center">
-            <Checkbox.Root
-              defaultChecked
-              id="uppercase"
-              className="w-6 h-6 bg-bg-black rounded-md cursor-pointer"
-              aria-label="Toggle uppercase"
-              checked={hasUppercase}
-              onCheckedChange={handleHasUppercase}
-            >
-              <Checkbox.Indicator>
-                <Check size={24} />
-              </Checkbox.Indicator>
-            </Checkbox.Root>
+          <Checkbox
+            id="numbers"
+            label="Toggle numbers"
+            checked={password.hasNumbers}
+            onCheckedChange={handleHasNumbers}
+          />
 
-            <label htmlFor="uppercase" className="pl-2 cursor-pointer">
-              Uppercase
-            </label>
-          </div>
-
-          <div className="flex items-center">
-            <Checkbox.Root
-              defaultChecked
-              id="numbers"
-              className="w-6 h-6 bg-bg-black rounded-md cursor-pointer"
-              aria-label="Toggle numbers"
-              checked={hasNumbers}
-              onCheckedChange={handleHasNumbers}
-            >
-              <Checkbox.Indicator>
-                <Check size={24} />
-              </Checkbox.Indicator>
-            </Checkbox.Root>
-
-            <label htmlFor="numbers" className="pl-2 cursor-pointer">
-              Numbers
-            </label>
-          </div>
-
-          <div className="flex items-center">
-            <Checkbox.Root
-              defaultChecked
-              id="symbols"
-              className="w-6 h-6 bg-bg-black rounded-md cursor-pointer"
-              aria-label="Toggle symbols"
-              checked={hasSymbols}
-              onCheckedChange={handleHasSymbols}
-            >
-              <Checkbox.Indicator>
-                <Check size={24} />
-              </Checkbox.Indicator>
-            </Checkbox.Root>
-
-            <label htmlFor="symbols" className="pl-2 cursor-pointer">
-              Symbols
-            </label>
-          </div>
+          <Checkbox
+            id="symbols"
+            label="Toggle symbols"
+            checked={password.hasSymbols}
+            onCheckedChange={handleHasSymbols}
+          />
         </div>
       </div>
     </div>
